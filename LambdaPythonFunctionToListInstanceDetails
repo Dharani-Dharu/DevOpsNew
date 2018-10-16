@@ -1,0 +1,27 @@
+import boto3
+import json
+
+def lambda_handler(event, context):
+
+    client = boto3.client('ec2')
+    response = client.describe_instances()
+    string = ""
+    project = ""
+    name = ""
+    for r in response['Reservations']:
+        for i in r['Instances']:
+            for tag in i['Tags']:
+               if tag['Key'] == 'project':
+                  project = tag['Value']
+               if tag['Key'] == 'Name':
+                  name = tag['Value']
+        string += name +','+i['InstanceId']+','+i['InstanceType']+','+i['State']['Name']+','+project+'\r\n'
+    print(string)
+    fileName = "instanceInfo.csv"
+    lambda_path = "/tmp/" + fileName
+    
+    with open(lambda_path, 'w+') as file:
+      file.write(string)
+      
+    s3 = boto3.resource('s3')
+    s3.meta.client.upload_file(lambda_path, '<bucket-name>', fileName)
