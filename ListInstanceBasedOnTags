@@ -1,0 +1,50 @@
+import json
+import boto3
+
+#Test function to write content to S3 from Lambda
+#def lambda_handler(event, context):
+
+  #string = "dfghj"
+  #file_name = "hello.txt"
+  #lambda_path = "/tmp/" + file_name
+  #with open(lambda_path, 'w+') as file:
+    #file.write(string)
+    #file.close()
+  #s3 = boto3.resource('s3')
+  #s3.meta.client.upload_file(lambda_path, '<bucket-name>', file_name)
+  
+
+ec2 = boto3.resource('ec2')
+
+def lambda_handler(event, context):
+    string = ""
+    name = ""
+    id = ""
+    fileName = "instanceInfo.txt"
+    lambda_path = "/tmp/" + fileName
+    filter1 = [{
+         'Name': 'tag:project',
+         'Values': ['<project-name>']
+       }
+       ]
+
+    instances1 = ec2.instances.filter(Filters=filter1)
+
+    RunningInstances = [instance.id for instance in instances1]
+    for instance in instances1:
+        id = instance.id 
+        for tag in instance.tags:
+            if tag['Key'] == 'Name':
+               name = tag['Value']
+        string += id + " : " + name + " ; "
+       
+    if len(RunningInstances) > 0:
+       print("found instances with tag")
+       print(string)
+       with open(lambda_path, 'w+') as file:
+          file.write(string)
+      
+       s3 = boto3.resource('s3')
+       s3.meta.client.upload_file(lambda_path, '<bucket-name>', fileName)
+    else:
+        print("none found")
